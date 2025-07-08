@@ -1,0 +1,24 @@
+{
+  "name": "nodescape",
+  "version": "0.1.0",
+  "description": "Next.js + Express project with React Flow for interactive graph rendering",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "html2canvas": "^1.4.1",
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "reactflow": "^11.11.4"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0"
+  }
+}
