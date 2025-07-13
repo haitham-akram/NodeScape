@@ -58,6 +58,64 @@ a {
 }
 
 .react-flow__minimap {
-  background: #f8f9fa;
+  background-color: #f8f9fa;
   border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 5;
+  width: 20%;
+  min-width: 150px;
+  max-width: 250px;
+  height: auto;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+}
+
+/* Fix for the minimap mask to ensure no white space */
+.react-flow__minimap-mask {
+  fill-opacity: 0.6;
+}
+
+/* Fix for the minimap SVG display */
+.react-flow__minimap svg {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+}
+
+/* Ensure mask covers the entire viewable area */
+.react-flow__minimap-mask {
+  width: 100%;
+  height: 100%;
+}
+
+/* Light and dark mode styles for the MiniMap */
+.minimap-light {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+}
+
+.minimap-dark {
+  background-color: #333333;
+  border: 1px solid #555;
+}
+
+/* Responsive adjustments for different screen sizes */
+@media (max-width: 768px) {
+  .react-flow__minimap {
+    width: 30%;
+    bottom: 10px;
+    right: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .react-flow__minimap {
+    width: 40%;
+    bottom: 5px;
+    right: 5px;
+  }
 }

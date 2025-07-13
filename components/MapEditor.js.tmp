@@ -1,0 +1,330 @@
+import React, { useState, useCallback, useMemo } from 'react'
+import {
+  ReactFlow,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  useReactFlow,
+  ReactFlowProvider,
+  MiniMap,
+} from 'reactflow'
+import 'reactflow/dist/style.css'
+
+// Import extracted components
+import { nodeTypes } from './nodes'
+import { edgeTypes } from './edges'
+import MapControls from './mapEditor/MapControls'
+import MapHeader from './mapEditor/MapHeader'
+import ThemeControls from './mapEditor/ThemeControls'
+
+// Import operation hooks
+import useNodeOperations from './mapEditor/nodeOperations'
+import useEdgeOperations from './mapEditor/edgeOperations'
+import useMapOperations from './mapEditor/mapOperations'
+import useGraphUtils from './mapEditor/graphUtils'
+
+/**
+ * Main MapEditor component
+ * Central component that coordinates all graph editing functionality
+ */
+const MapEditorContent = () => {
+  // ========================================
+  // STATE MANAGEMENT
+  // ========================================
+
+  // Primary state: nodes and edges arrays (React Flow format)
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+
+  // Selection state for UI interactions
+  const [selectedNodes, setSelectedNodes] = useState([])
+  const [selectedEdges, setSelectedEdges] = useState([])
+
+  // Counter for unique node IDs
+  const [nodeCounter, setNodeCounter] = useState(1)
+
+  // Editor options
+  const [autoConnectEnabled, setAutoConnectEnabled] = useState(false)
+  const [selectedEdgeType, setSelectedEdgeType] = useState('default')
+  const [darkMode, setDarkMode] = useState(false)
+
+  // Access React Flow instance
+  const { fitView, getViewport } = useReactFlow()
+
+  // ========================================
+  // CUSTOM HOOKS FOR OPERATIONS
+  // ========================================
+
+  // Map operations (save, load, export, import)
+  const mapOperations = useMapOperations({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    fitView,
+    calculateNextNodeCounter,
+    setNodeCounter,
+    setSelectedNodes,
+    setSelectedEdges,
+  })
+
+  // Node operations
+  const nodeOperations = useNodeOperations({
+    nodes,
+    setNodes,
+    edges,
+    setEdges,
+    nodeCounter,
+    setNodeCounter,
+    selectedNodes,
+    setSelectedNodes,
+    getViewport,
+    markMapAsModified: mapOperations.markMapAsModified,
+  })
+
+  // Edge operations
+  const edgeOperations = useEdgeOperations({
+    nodes,
+    edges, 
+    setEdges,
+    selectedEdges,
+    setSelectedEdges,
+    selectedEdgeType,
+    markMapAsModified: mapOperations.markMapAsModified,
+  })
+
+  // Graph utilities
+  const graphUtils = useGraphUtils({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    setNodeCounter,
+    setSelectedNodes,
+    setSelectedEdges,
+    markMapAsModified: mapOperations.markMapAsModified,
+  })
+
+  // Extract functions from the calculateNextNodeCounter from nodeOperations
+  const { calculateNextNodeCounter } = nodeOperations
+
+  // ========================================
+  // EVENT HANDLERS
+  // ========================================
+
+  // Custom handlers to track modifications
+  const handleNodesChange = useCallback(
+    (changes) => {
+      onNodesChange(changes)
+      // Mark as modified if there are actual changes (not just selection)
+      if (changes.some((change) => change.type !== 'select')) {
+        mapOperations.markMapAsModified()
+      }
+    },
+    [onNodesChange, mapOperations]
+  )
+
+  const handleEdgesChange = useCallback(
+    (changes) => {
+      onEdgesChange(changes)
+      // Mark as modified if there are actual changes (not just selection)
+      if (changes.some((change) => change.type !== 'select')) {
+        mapOperations.markMapAsModified()
+      }
+    },
+    [onEdgesChange, mapOperations]
+  )
+
+  // Auto-connect new nodes if enabled
+  const handleNodeDragStop = useCallback(
+    (event, draggedNode) => {
+      if (!autoConnectEnabled) return
+
+      // Find closest nodes to connect with
+      const threshold = 150 // Distance threshold for auto-connection
+      let closestNode = null
+      let minDistance = threshold
+
+      nodes.forEach((node) => {
+        if (node.id === draggedNode.id) return
+
+        const dx = node.position.x - draggedNode.position.x
+        const dy = node.position.y - draggedNode.position.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        if (distance < minDistance) {
+          minDistance = distance
+          closestNode = node
+        }
+      })
+
+      if (closestNode) {
+        // Determine direction of connection based on relative positions
+        if (draggedNode.position.x < closestNode.position.x) {
+          edgeOperations.addEdgeCustom(draggedNode.id, closestNode.id)
+        } else {
+          edgeOperations.addEdgeCustom(closestNode.id, draggedNode.id)
+        }
+      }
+    },
+    [nodes, autoConnectEnabled, edgeOperations]
+  )
+
+  // ========================================
+  // KEYBOARD EVENT HANDLING
+  // ========================================
+
+  // Add keyboard shortcuts for common operations
+  React.useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Only handle key events when not typing in an input or textarea
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return
+      }
+
+      // Delete key - Remove selected nodes/edges
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        if (selectedNodes.length > 0) {
+          nodeOperations.deleteSelectedNodes()
+        }
+        if (selectedEdges.length > 0) {
+          edgeOperations.deleteSelectedEdges()
+        }
+      }
+
+      // Ctrl+A - Add a new node
+      if (event.key === 'a' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        nodeOperations.addNode('default')
+      }
+
+      // Ctrl+L - Link selected nodes
+      if (event.key === 'l' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        if (selectedNodes.length >= 2) {
+          edgeOperations.linkSelectedNodes(selectedNodes)
+        }
+      }
+
+      // Ctrl+S - Save map
+      if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        mapOperations.saveMap()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedNodes, selectedEdges, nodeOperations, edgeOperations, mapOperations])
+
+  // ========================================
+  // FETCH DATA ON MOUNT
+  // ========================================
+
+  // Fetch available maps on component mount
+  React.useEffect(() => {
+    mapOperations.fetchAvailableMaps()
+  }, [])
+
+  // ========================================
+  // RENDER
+  // ========================================
+
+  return (
+    <div 
+      style={{ 
+        width: '100%', 
+        height: '100%',
+        backgroundColor: darkMode ? '#1e1e1e' : '#ffffff'
+      }}
+    >
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
+        onConnect={edgeOperations.onConnect}
+        onNodeClick={graphUtils.onNodeClick}
+        onEdgeClick={graphUtils.onEdgeClick}
+        onPaneClick={graphUtils.onPaneClick}
+        onNodeDragStop={handleNodeDragStop}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        fitView
+        snapToGrid
+        snapGrid={[15, 15]}
+        style={{ background: darkMode ? '#1e1e1e' : '#ffffff' }}
+      >
+        {/* Background and Controls */}
+        <Background 
+          color={darkMode ? '#555' : '#aaa'} 
+          gap={16} 
+          size={1} 
+          variant="dots" 
+        />
+        <Controls 
+          style={{ 
+            bottom: '80px',
+            backgroundColor: darkMode ? '#333' : '#fff',
+            borderColor: darkMode ? '#555' : '#eee'
+          }} 
+        />
+        <MiniMap 
+          nodeStrokeColor={darkMode ? '#aaa' : '#333'}
+          nodeColor={darkMode ? '#666' : '#ddd'}
+          nodeBorderRadius={8}
+        />
+
+        {/* Custom UI Components */}
+        <MapControls
+          addNode={nodeOperations.addNode}
+          linkSelectedNodes={edgeOperations.linkSelectedNodes}
+          linkAllNodes={edgeOperations.linkAllNodes}
+          smartLinkNodes={edgeOperations.smartLinkNodes}
+          autoConnectEnabled={autoConnectEnabled}
+          setAutoConnectEnabled={setAutoConnectEnabled}
+          selectedNodes={selectedNodes}
+          deleteSelectedNodes={nodeOperations.deleteSelectedNodes}
+          deleteSelectedEdges={edgeOperations.deleteSelectedEdges}
+          selectedEdges={selectedEdges}
+        />
+
+        <MapHeader
+          currentMapName={mapOperations.currentMapName}
+          setCurrentMapName={mapOperations.setCurrentMapName}
+          saveMap={mapOperations.saveMap}
+          loadMapById={mapOperations.loadMapById}
+          deleteMap={mapOperations.deleteMap}
+          exportToPNG={mapOperations.exportToPNG}
+          exportToJSON={mapOperations.exportToJSON}
+          importFromJSON={mapOperations.importFromJSON}
+          availableMaps={mapOperations.availableMaps}
+          fetchAvailableMaps={mapOperations.fetchAvailableMaps}
+          loadMapId={mapOperations.loadMapId}
+          setLoadMapId={mapOperations.setLoadMapId}
+          mapModifiedAfterLoad={mapOperations.mapModifiedAfterLoad}
+          isLoading={mapOperations.isLoading}
+        />
+
+        <ThemeControls
+          selectedEdgeType={selectedEdgeType}
+          setSelectedEdgeType={setSelectedEdgeType}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+        />
+      </ReactFlow>
+    </div>
+  )
+}
+
+// Wrap the component with ReactFlowProvider
+const MapEditor = () => {
+  return (
+    <ReactFlowProvider>
+      <MapEditorContent />
+    </ReactFlowProvider>
+  )
+}
+
+export default MapEditor

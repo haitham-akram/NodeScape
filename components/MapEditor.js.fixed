@@ -8,7 +8,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
   MiniMap,
-  Panel,
+  Panel
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
@@ -18,15 +18,12 @@ import { edgeTypes } from './edges'
 import MapControls from './mapEditor/MapControls'
 import MapHeader from './mapEditor/MapHeader'
 import ThemeControls from './mapEditor/ThemeControls'
-import NodeLibrary from './mapEditor/NodeLibrary'
-import MapTemplates from './mapEditor/MapTemplates'
 
 // Import operation hooks
 import useNodeOperations from './mapEditor/nodeOperations'
 import useEdgeOperations from './mapEditor/edgeOperations'
 import useMapOperations from './mapEditor/mapOperations'
 import useGraphUtils from './mapEditor/graphUtils'
-import useHistory from './mapEditor/useHistory'
 
 /**
  * Main MapEditor component
@@ -53,15 +50,8 @@ const MapEditor = () => {
   const [selectedEdgeType, setSelectedEdgeType] = useState('default')
   const [darkMode, setDarkMode] = useState(false)
 
-  // Panel visibility states
-  const [nodeLibraryVisible, setNodeLibraryVisible] = useState(false)
-  const [templatesVisible, setTemplatesVisible] = useState(false)
-
   // Access React Flow instance
   const { fitView, getViewport } = useReactFlow()
-
-  // History management
-  const history = useHistory(nodes, edges)
 
   // ========================================
   // CUSTOM HOOKS FOR OPERATIONS
@@ -82,7 +72,7 @@ const MapEditor = () => {
   })
 
   // Extract the calculateNextNodeCounter function for mapOperations hook
-  const { calculateNextNodeCounter, addNode: addNodeOriginal, deleteSelectedNodes, updateNodeLabel } = nodeOperations
+  const { calculateNextNodeCounter, addNode, deleteSelectedNodes, updateNodeLabel } = nodeOperations
 
   // Map operations (save, load, export, import)
   const mapOperations = useMapOperations({
@@ -98,10 +88,10 @@ const MapEditor = () => {
   })
 
   // Extract map operations
-  const {
+  const { 
     currentMapId,
     setCurrentMapId,
-    currentMapName,
+    currentMapName, 
     setCurrentMapName,
     mapModifiedAfterLoad,
     setMapModifiedAfterLoad,
@@ -115,39 +105,22 @@ const MapEditor = () => {
     exportAsPng,
     exportAsJson,
     importFromJson,
-    createNewMap,
+    createNewMap
   } = mapOperations
 
   // Edge operations
   const edgeOperations = useEdgeOperations({
     nodes,
-    edges,
+    edges, 
     setEdges,
     selectedEdges,
     setSelectedEdges,
     selectedEdgeType,
     markMapAsModified: (value) => setMapModifiedAfterLoad(value),
-    autoConnectEnabled,
   })
 
   // Extract edge operations
-  const { addEdge, onConnect, deleteSelectedEdges, linkSelectedNodes, linkAllNodes, smartLinkNodes, handleNodeAdd } =
-    edgeOperations
-
-  // Create a wrapped version of addNode that also handles auto-connection
-  const addNode = useCallback(
-    (type = 'default', position = null, label = null) => {
-      const nodeId = addNodeOriginal(type, position, label)
-
-      // When autoConnect is enabled, connect the new node to the previous node
-      if (nodeId) {
-        handleNodeAdd(nodeId)
-      }
-
-      return nodeId
-    },
-    [addNodeOriginal, handleNodeAdd]
-  )
+  const { addEdge, onConnect, deleteSelectedEdges, linkSelectedNodes } = edgeOperations
 
   // Graph utilities
   const graphUtils = useGraphUtils({
@@ -194,104 +167,22 @@ const MapEditor = () => {
   // Update selection state for UI
   const onSelectionChange = useCallback(
     ({ nodes: selectedNodes = [], edges: selectedEdges = [] }) => {
-      // Extract node IDs from selected nodes
-      const nodeIds = selectedNodes.map((node) => node.id)
-      setSelectedNodes(nodeIds)
-
-      // Extract edge IDs from selected edges
-      const edgeIds = selectedEdges.map((edge) => edge.id)
-      setSelectedEdges(edgeIds)
-
-      console.log('Selection changed:', { nodes: nodeIds, edges: edgeIds })
+      setSelectedNodes(selectedNodes)
+      setSelectedEdges(selectedEdges)
     },
     [setSelectedNodes, setSelectedEdges]
   )
 
-  // Handle key commands (delete, undo, redo, etc.)
+  // Handle key commands (delete, etc.)
   const onKeyDown = useCallback(
     (event) => {
       if (event.key === 'Delete' || event.key === 'Backspace') {
         deleteSelectedNodes()
         deleteSelectedEdges()
-      } else if (event.ctrlKey || event.metaKey) {
-        if (event.key === 'z' && !event.shiftKey) {
-          event.preventDefault()
-          // handleUndo() will be called later
-        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
-          event.preventDefault()
-          // handleRedo() will be called later
-        }
       }
     },
     [deleteSelectedNodes, deleteSelectedEdges]
   )
-
-  // Undo functionality
-  const handleUndo = useCallback(() => {
-    const previousState = history.undo()
-    if (previousState) {
-      setNodes(previousState.nodes)
-      setEdges(previousState.edges)
-    }
-  }, [history, setNodes, setEdges])
-
-  // Redo functionality
-  const handleRedo = useCallback(() => {
-    const nextState = history.redo()
-    if (nextState) {
-      setNodes(nextState.nodes)
-      setEdges(nextState.edges)
-    }
-  }, [history, setNodes, setEdges])
-
-  // Global key handler for undo/redo
-  React.useEffect(() => {
-    const handleGlobalKeyDown = (event) => {
-      if (event.ctrlKey || event.metaKey) {
-        if (event.key === 'z' && !event.shiftKey) {
-          event.preventDefault()
-          handleUndo()
-        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
-          event.preventDefault()
-          handleRedo()
-        }
-      }
-    }
-
-    document.addEventListener('keydown', handleGlobalKeyDown)
-    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [handleUndo, handleRedo])
-
-  // Add to history when nodes or edges change
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      history.addToHistory(nodes, edges)
-    }, 500) // Debounce to avoid too many history entries
-
-    return () => clearTimeout(timer)
-  }, [nodes, edges, history])
-
-  // Template loading handler
-  const handleLoadTemplate = useCallback(
-    (template) => {
-      setNodes(template.nodes)
-      setEdges(template.edges)
-      history.clearHistory(template.nodes, template.edges)
-
-      // Fit view after loading template
-      setTimeout(() => fitView(), 100)
-    },
-    [setNodes, setEdges, history, fitView]
-  )
-
-  // Panel toggle handlers
-  const toggleNodeLibrary = useCallback(() => {
-    setNodeLibraryVisible((prev) => !prev)
-  }, [])
-
-  const toggleTemplates = useCallback(() => {
-    setTemplatesVisible((prev) => !prev)
-  }, [])
 
   // Toggle dark mode
   const toggleDarkMode = useCallback(() => {
@@ -303,12 +194,12 @@ const MapEditor = () => {
   // ========================================
 
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100vh',
+    <div 
+      style={{ 
+        width: '100%', 
+        height: '100vh', 
         backgroundColor: darkMode ? '#1a1a1a' : '#f5f5f5',
-        color: darkMode ? '#e0e0e0' : '#333',
+        color: darkMode ? '#e0e0e0' : '#333'
       }}
       onKeyDown={onKeyDown}
       tabIndex={0}
@@ -343,10 +234,10 @@ const MapEditor = () => {
           importFromJSON={importFromJson}
           createSampleMap={createNewMap}
         />
-
+        
         {/* Theme Controls */}
-        <ThemeControls
-          darkMode={darkMode}
+        <ThemeControls 
+          darkMode={darkMode} 
           toggleDarkMode={toggleDarkMode}
           selectedEdgeType={selectedEdgeType}
           setSelectedEdgeType={setSelectedEdgeType}
@@ -355,34 +246,15 @@ const MapEditor = () => {
         {/* Background and controls */}
         <Background color={darkMode ? '#444444' : '#aaaaaa'} gap={16} />
         <Controls />
-        <MiniMap
-          zoomable
-          pannable
-          nodeStrokeColor={darkMode ? '#888888' : '#555555'}
-          nodeStrokeWidth={2}
-          nodeBorderRadius={4}
-          nodeColor={(node) => {
-            switch (node.type) {
-              case 'input':
-                return darkMode ? '#4caf50' : '#a5d6a7'
-              case 'output':
-                return darkMode ? '#f44336' : '#ef9a9a'
-              default:
-                return darkMode ? '#555555' : '#d3d3d3'
-            }
-          }}
-          maskColor={darkMode ? 'rgba(20,20,20,0.6)' : 'rgba(240,240,240,0.6)'}
-          className={`minimap-${darkMode ? 'dark' : 'light'}`}
-          inversePan={false}
-          position="bottom-right"
+        <MiniMap 
+          nodeColor={darkMode ? '#555555' : '#d3d3d3'}
+          maskColor={darkMode ? 'rgba(20,20,20,0.5)' : 'rgba(240,240,240,0.5)'} 
         />
-
+        
         {/* Node and Edge Operation Controls */}
-        <MapControls
+        <MapControls 
           addNode={addNode}
           linkSelectedNodes={linkSelectedNodes}
-          linkAllNodes={linkAllNodes}
-          smartLinkNodes={smartLinkNodes}
           autoConnectEnabled={autoConnectEnabled}
           setAutoConnectEnabled={setAutoConnectEnabled}
           selectedEdgeType={selectedEdgeType}
@@ -395,28 +267,6 @@ const MapEditor = () => {
           selectedEdges={selectedEdges}
           deleteSelectedNodes={deleteSelectedNodes}
           deleteSelectedEdges={deleteSelectedEdges}
-          canUndo={history.canUndo}
-          canRedo={history.canRedo}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onToggleNodeLibrary={toggleNodeLibrary}
-          onToggleTemplates={toggleTemplates}
-        />
-
-        {/* Node Library Panel */}
-        <NodeLibrary
-          addNode={addNode}
-          darkMode={darkMode}
-          isVisible={nodeLibraryVisible}
-          onToggle={toggleNodeLibrary}
-        />
-
-        {/* Map Templates Panel */}
-        <MapTemplates
-          onLoadTemplate={handleLoadTemplate}
-          darkMode={darkMode}
-          isVisible={templatesVisible}
-          onToggle={toggleTemplates}
         />
       </ReactFlow>
     </div>
