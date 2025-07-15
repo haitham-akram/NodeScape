@@ -65,24 +65,21 @@ const InputNode = ({ data, selected, id }) => {
 
   // Determine background based on execution state
   const getNodeBackground = () => {
-    if (isExecuting) {
-      return 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)'
-    }
-    if (hasExecuted) {
-      return 'linear-gradient(135deg, #e8f5e8 0%, #a5d6a7 100%)'
-    }
-    if (selected) {
-      return 'linear-gradient(135deg, #a5d6a7 0%, #81c784 100%)'
-    }
-    return 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)'
+    return 'var(--theme-surface)'
+  }
+
+  // Determine text color based on execution state
+  const getNodeTextColor = () => {
+    // Always use theme text color for better contrast with theme surface
+    return 'var(--theme-text)'
   }
 
   // Determine border color based on execution state
   const getBorderColor = () => {
     if (isExecuting) return 'rgba(255,152,0,0.5)'
     if (hasExecuted) return 'rgba(76,175,80,0.5)'
-    if (selected) return 'rgba(76,175,80,0.3)'
-    return 'transparent'
+    if (selected) return 'var(--theme-primary)'
+    return 'var(--theme-border)'
   }
 
   // Format execution result for display
@@ -115,19 +112,19 @@ const InputNode = ({ data, selected, id }) => {
     <div
       style={{
         background: getNodeBackground(),
-        border: `2px solid ${getBorderColor()}`,
+        border: `2px solid ${getBorderColor() || 'var(--theme-node-input-border)'}`,
         borderRadius: '20px',
         padding: '18px 22px',
         minWidth: '150px',
         textAlign: 'center',
         cursor: 'pointer',
         boxShadow: selected
-          ? '0 10px 30px rgba(76,175,80,0.4), 0 0 0 2px rgba(76,175,80,0.3)'
+          ? '0 10px 30px var(--theme-shadow), 0 0 0 2px var(--theme-success)'
           : isExecuting
           ? '0 6px 20px rgba(255,152,0,0.3), 0 2px 10px rgba(255,152,0,0.2)'
           : hasExecuted
           ? '0 6px 20px rgba(76,175,80,0.3), 0 2px 10px rgba(76,175,80,0.2)'
-          : '0 6px 20px rgba(76,175,80,0.15), 0 2px 10px rgba(76,175,80,0.1)',
+          : `0 6px 20px var(--theme-shadow), 0 2px 10px var(--theme-shadow)`,
         position: 'relative',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         transform: selected ? 'translateY(-3px) scale(1.02)' : 'translateY(0) scale(1)',
@@ -155,12 +152,12 @@ const InputNode = ({ data, selected, id }) => {
         type="source"
         position={Position.Right}
         style={{
-          background: '#000000',
+          background: 'var(--theme-text)',
           width: '10px',
           height: '10px',
           right: '-5px',
-          border: '2px solid #ffffff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          border: `2px solid var(--theme-surface)`,
+          boxShadow: `0 2px 4px var(--theme-shadow)`,
         }}
       />
 
@@ -178,11 +175,21 @@ const InputNode = ({ data, selected, id }) => {
             textAlign: 'center',
             width: '100%',
             fontSize: '14px',
+            color: getNodeTextColor(),
           }}
         />
       ) : (
         <>
-          <div style={{ fontSize: '14px', fontWeight: '500', color: '#2e7d32' }}>{label}</div>
+          <div
+            style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: getNodeTextColor(),
+              transition: 'color 0.3s ease',
+            }}
+          >
+            {label}
+          </div>
 
           {/* Value input section */}
           <div style={{ marginTop: '8px' }}>
@@ -195,12 +202,14 @@ const InputNode = ({ data, selected, id }) => {
                 onBlur={handleValueBlur}
                 placeholder="Enter value..."
                 style={{
-                  border: '1px solid #a5d6a7',
+                  border: `1px solid var(--theme-border)`,
                   borderRadius: '4px',
                   padding: '4px 8px',
                   fontSize: '12px',
                   width: '100%',
-                  background: 'white',
+                  background: 'var(--theme-surface)',
+                  color: 'var(--theme-text)',
+                  outline: 'none',
                 }}
               />
             ) : (
@@ -214,7 +223,7 @@ const InputNode = ({ data, selected, id }) => {
                   minHeight: '20px',
                   cursor: 'pointer',
                   background: 'rgba(255,255,255,0.7)',
-                  color: value ? '#2e7d32' : '#999',
+                  color: value ? getNodeTextColor() : 'var(--theme-text-muted)',
                 }}
                 title="Double-click to edit value"
               >
@@ -245,7 +254,7 @@ const InputNode = ({ data, selected, id }) => {
               style={{
                 marginTop: '8px',
                 fontSize: '12px',
-                color: '#2e7d32',
+                color: getNodeTextColor(),
                 maxHeight: '60px',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',

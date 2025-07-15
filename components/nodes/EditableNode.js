@@ -40,24 +40,21 @@ const EditableNode = ({ data, selected, id }) => {
 
   // Determine background based on execution state
   const getNodeBackground = () => {
-    if (isExecuting) {
-      return 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)'
-    }
-    if (hasExecuted) {
-      return 'linear-gradient(135deg, #e8f5e8 0%, #a5d6a7 100%)'
-    }
-    if (selected) {
-      return 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)'
-    }
-    return 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)'
+    return 'var(--theme-surface)'
+  }
+
+  // Determine text color based on execution state
+  const getNodeTextColor = () => {
+    // Always use theme text color for better contrast with theme surface
+    return 'var(--theme-text)'
   }
 
   // Determine border color based on execution state
   const getBorderColor = () => {
     if (isExecuting) return 'rgba(255,152,0,0.5)'
     if (hasExecuted) return 'rgba(76,175,80,0.5)'
-    if (selected) return 'rgba(25,118,210,0.3)'
-    return 'transparent'
+    if (selected) return 'var(--theme-primary)'
+    return 'var(--theme-border)'
   }
 
   // Format execution result for display
@@ -90,19 +87,19 @@ const EditableNode = ({ data, selected, id }) => {
     <div
       style={{
         background: getNodeBackground(),
-        border: `2px solid ${getBorderColor()}`,
+        border: `2px solid ${getBorderColor() || 'var(--theme-node-default-border)'}`,
         borderRadius: '16px',
         padding: '16px 20px',
         minWidth: '140px',
         textAlign: 'center',
         cursor: 'pointer',
         boxShadow: selected
-          ? '0 8px 25px rgba(25,118,210,0.4), 0 0 0 2px rgba(25,118,210,0.3)'
+          ? '0 8px 25px var(--theme-shadow), 0 0 0 2px var(--theme-primary)'
           : isExecuting
           ? '0 4px 15px rgba(255,152,0,0.3), 0 2px 8px rgba(255,152,0,0.2)'
           : hasExecuted
           ? '0 4px 15px rgba(76,175,80,0.3), 0 2px 8px rgba(76,175,80,0.2)'
-          : '0 4px 15px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05)',
+          : `0 4px 15px var(--theme-shadow), 0 2px 8px var(--theme-shadow)`,
         position: 'relative',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         transform: selected ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
@@ -116,24 +113,24 @@ const EditableNode = ({ data, selected, id }) => {
         type="target"
         position={Position.Left}
         style={{
-          background: '#000000',
+          background: 'var(--theme-text)',
           width: '10px',
           height: '10px',
           left: '-5px',
-          border: '2px solid #ffffff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          border: `2px solid var(--theme-surface)`,
+          boxShadow: `0 2px 4px var(--theme-shadow)`,
         }}
       />
       <Handle
         type="source"
         position={Position.Right}
         style={{
-          background: '#000000',
+          background: 'var(--theme-text)',
           width: '10px',
           height: '10px',
           right: '-5px',
-          border: '2px solid #ffffff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          border: `2px solid var(--theme-surface)`,
+          boxShadow: `0 2px 4px var(--theme-shadow)`,
         }}
       />
 
@@ -151,11 +148,21 @@ const EditableNode = ({ data, selected, id }) => {
             textAlign: 'center',
             width: '100%',
             fontSize: '14px',
+            color: getNodeTextColor(),
           }}
         />
       ) : (
         <>
-          <div style={{ fontSize: '14px', fontWeight: '500' }}>{label}</div>
+          <div
+            style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: getNodeTextColor(),
+              transition: 'color 0.3s ease',
+            }}
+          >
+            {label}
+          </div>
 
           {/* Execution status indicator */}
           {isExecuting && (
@@ -179,14 +186,15 @@ const EditableNode = ({ data, selected, id }) => {
               style={{
                 marginTop: '8px',
                 fontSize: '12px',
-                color: '#666',
+                color: getNodeTextColor(),
                 maxHeight: '60px',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                background: 'rgba(248,249,250,0.8)',
+                background: 'rgba(0,0,0,0.1)',
                 padding: '4px',
                 borderRadius: '4px',
-                border: '1px solid rgba(0,0,0,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                transition: 'all 0.3s ease',
               }}
             >
               Result: {formatResultForDisplay(executionResult)}

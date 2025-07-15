@@ -7,18 +7,38 @@ import { Panel } from 'reactflow'
  */
 const ThemeControls = ({ selectedEdgeType, setSelectedEdgeType, darkMode, setDarkMode }) => {
   return (
-    <Panel position="bottom-left" style={{ padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
+    <Panel
+      position="bottom-left"
+      style={{
+        padding: '10px',
+        background: 'var(--theme-surface)',
+        borderRadius: '8px',
+        border: `1px solid var(--theme-border)`,
+        transition: 'all 0.3s ease',
+      }}
+    >
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <div>
-          <label style={{ fontSize: '14px', marginRight: '8px' }}>Edge Type:</label>
+          <label
+            style={{
+              fontSize: '14px',
+              marginRight: '8px',
+              color: 'var(--theme-text)',
+            }}
+          >
+            Edge Type:
+          </label>
           <select
             value={selectedEdgeType}
             onChange={(e) => setSelectedEdgeType(e.target.value)}
             style={{
               padding: '6px 10px',
-              border: '1px solid #ddd',
+              border: `1px solid var(--theme-border)`,
               borderRadius: '4px',
               fontSize: '14px',
+              background: 'var(--theme-bg)',
+              color: 'var(--theme-text)',
+              transition: 'all 0.2s ease',
             }}
           >
             <option value="default">Default</option>
@@ -35,10 +55,12 @@ const ThemeControls = ({ selectedEdgeType, setSelectedEdgeType, darkMode, setDar
             alignItems: 'center',
             gap: '6px',
             fontSize: '14px',
-            background: '#f5f5f5',
+            background: 'var(--theme-surface-secondary)',
             padding: '6px 12px',
-            border: '1px solid #e0e0e0',
+            border: `1px solid var(--theme-border)`,
             borderRadius: '4px',
+            color: 'var(--theme-text)',
+            transition: 'all 0.2s ease',
           }}
         >
           <input type="checkbox" checked={darkMode} onChange={(e) => setDarkMode(e.target.checked)} />

@@ -41,15 +41,27 @@ const OutputNode = ({ data, selected, id }) => {
   // Determine background based on execution state
   const getNodeBackground = () => {
     if (isExecuting) {
-      return 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)'
+      return 'var(--theme-warning)'
     }
     if (hasExecuted) {
-      return 'linear-gradient(135deg, #e8f5e8 0%, #a5d6a7 100%)'
+      return 'var(--theme-success)'
     }
     if (selected) {
-      return 'linear-gradient(135deg, #ffcc80 0%, #ffb74d 100%)'
+      return 'var(--theme-primary)'
     }
-    return 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)'
+    return 'var(--theme-node-output-bg)'
+  }
+
+  // Determine text color based on execution state
+  const getNodeTextColor = () => {
+    if (isExecuting || hasExecuted) {
+      return '#ffffff' // Always white for execution states (colored backgrounds)
+    }
+    if (selected) {
+      // For selected state, use theme text color for better contrast
+      return 'var(--theme-text)'
+    }
+    return 'var(--theme-node-output-text)'
   }
 
   // Determine border color based on execution state
@@ -90,19 +102,19 @@ const OutputNode = ({ data, selected, id }) => {
     <div
       style={{
         background: getNodeBackground(),
-        border: `2px solid ${getBorderColor()}`,
+        border: `2px solid ${getBorderColor() || 'var(--theme-node-output-border)'}`,
         borderRadius: '20px',
         padding: '18px 22px',
         minWidth: '150px',
         textAlign: 'center',
         cursor: 'pointer',
         boxShadow: selected
-          ? '0 10px 30px rgba(255,152,0,0.4), 0 0 0 2px rgba(255,152,0,0.3)'
+          ? '0 10px 30px var(--theme-shadow), 0 0 0 2px var(--theme-warning)'
           : isExecuting
           ? '0 6px 20px rgba(255,152,0,0.3), 0 2px 10px rgba(255,152,0,0.2)'
           : hasExecuted
           ? '0 6px 20px rgba(76,175,80,0.3), 0 2px 10px rgba(76,175,80,0.2)'
-          : '0 6px 20px rgba(255,152,0,0.15), 0 2px 10px rgba(255,152,0,0.1)',
+          : `0 6px 20px var(--theme-shadow), 0 2px 10px var(--theme-shadow)`,
         position: 'relative',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         transform: selected ? 'translateY(-3px) scale(1.02)' : 'translateY(0) scale(1)',
@@ -130,12 +142,12 @@ const OutputNode = ({ data, selected, id }) => {
         type="target"
         position={Position.Left}
         style={{
-          background: '#000000',
+          background: 'var(--theme-text)',
           width: '10px',
           height: '10px',
           left: '-5px',
-          border: '2px solid #ffffff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          border: `2px solid var(--theme-surface)`,
+          boxShadow: `0 2px 4px var(--theme-shadow)`,
         }}
       />
 
@@ -157,7 +169,16 @@ const OutputNode = ({ data, selected, id }) => {
         />
       ) : (
         <>
-          <div style={{ fontSize: '14px', fontWeight: '500', color: '#ef6c00' }}>{label}</div>
+          <div
+            style={{
+              fontSize: '14px',
+              fontWeight: '500',
+              color: getNodeTextColor(),
+              transition: 'color 0.3s ease',
+            }}
+          >
+            {label}
+          </div>
 
           {/* Execution status indicator */}
           {isExecuting && (
@@ -181,7 +202,7 @@ const OutputNode = ({ data, selected, id }) => {
               style={{
                 marginTop: '8px',
                 fontSize: '12px',
-                color: '#ef6c00',
+                color: getNodeTextColor(),
                 maxHeight: '60px',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',

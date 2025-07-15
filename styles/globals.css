@@ -4,6 +4,46 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background-color: var(--theme-background, #f5f5f5);
+  color: var(--theme-text, #333333);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Root CSS variables for theming - fallback values */
+:root {
+  --theme-background: #f5f5f5;
+  --theme-surface: #ffffff;
+  --theme-surface-secondary: #f8f9fa;
+  --theme-primary: #2196F3;
+  --theme-secondary: #4CAF50;
+  --theme-text: #333333;
+  --theme-text-secondary: #666666;
+  --theme-text-muted: #999999;
+  --theme-border: #e0e0e0;
+  --theme-border-light: #f0f0f0;
+  --theme-shadow: rgba(0, 0, 0, 0.1);
+  --theme-overlay: rgba(0, 0, 0, 0.5);
+  --theme-error: #f44336;
+  --theme-error-bg: #ffebee;
+  --theme-warning: #ff9800;
+  --theme-success: #4caf50;
+  --theme-success-bg: rgba(76, 175, 80, 0.1);
+  --theme-info: #2196f3;
+  
+  /* Node colors */
+  --theme-node-default-bg: #ffffff;
+  --theme-node-default-border: #e0e0e0;
+  --theme-node-default-text: #333333;
+  --theme-node-input-bg: #e8f5e9;
+  --theme-node-input-border: #a5d6a7;
+  --theme-node-input-text: #2e7d32;
+  --theme-node-output-bg: #ffebee;
+  --theme-node-output-border: #ef9a9a;
+  --theme-node-output-text: #c62828;
+  
+  /* Edge colors */
+  --theme-edge-default: #999999;
+  --theme-edge-selected: #2196F3;
 }
 
 a {
@@ -15,7 +55,7 @@ a {
   box-sizing: border-box;
 }
 
-/* React Flow custom styles - No borders */
+/* React Flow themed styles */
 .react-flow__node {
   background: transparent !important;
   border: none !important;
@@ -31,7 +71,7 @@ a {
 
 .react-flow__node.selected {
   border: none !important;
-  border-color: transparent !important;
+  outline: none !important;
   box-shadow: none !important;
 }
 
@@ -42,26 +82,58 @@ a {
   background: transparent !important;
 }
 
-.react-flow__edge {
-  stroke: #b1b1b7;
+/* ReactFlow pane background */
+.react-flow__pane {
+  background-color: var(--theme-background);
+}
+
+/* ReactFlow edges using theme colors */
+.react-flow__edge-path {
+  stroke: var(--theme-edge-default);
   stroke-width: 2;
+  transition: stroke 0.3s ease;
 }
 
-.react-flow__edge.selected {
-  stroke: #007bff;
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--theme-edge-selected);
+  stroke-width: 3;
 }
 
+.react-flow__edge-textbg {
+  fill: var(--theme-surface);
+}
+
+.react-flow__edge-text {
+  fill: var(--theme-text);
+}
+
+/* ReactFlow controls using theme colors */
 .react-flow__controls {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--theme-shadow);
 }
 
+.react-flow__controls-button {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text);
+  transition: all 0.2s ease;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--theme-surface-secondary);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+}
+
+/* ReactFlow minimap using theme colors */
 .react-flow__minimap {
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--theme-shadow);
   position: absolute;
   bottom: 20px;
   right: 20px;
@@ -74,33 +146,99 @@ a {
   overflow: hidden;
 }
 
-/* Fix for the minimap mask to ensure no white space */
 .react-flow__minimap-mask {
+  fill: var(--theme-overlay);
   fill-opacity: 0.6;
 }
 
-/* Fix for the minimap SVG display */
 .react-flow__minimap svg {
   width: 100% !important;
   height: 100% !important;
   overflow: visible !important;
 }
 
-/* Ensure mask covers the entire viewable area */
-.react-flow__minimap-mask {
-  width: 100%;
-  height: 100%;
+/* ReactFlow selection box */
+.react-flow__selection {
+  background: var(--theme-primary);
+  opacity: 0.2;
+  border: 1px solid var(--theme-primary);
 }
 
-/* Light and dark mode styles for the MiniMap */
+/* ReactFlow node resizer */
+.react-flow__resize-control {
+  background: var(--theme-primary);
+  border: 1px solid var(--theme-surface);
+}
+
+/* Connection line */
+.react-flow__connection-line {
+  stroke: var(--theme-primary);
+  stroke-width: 2;
+  stroke-dasharray: 5;
+}
+
+/* Legacy theme classes - now using CSS variables */
 .minimap-light {
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
 }
 
 .minimap-dark {
-  background-color: #333333;
-  border: 1px solid #555;
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+}
+
+/* Theme-aware scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--theme-surface-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text-muted);
+}
+
+/* Global button styling with theme variables */
+button {
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+button:focus {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+}
+
+/* Global input styling with theme variables */
+input, textarea, select {
+  font-family: inherit;
+  background-color: var(--theme-surface);
+  color: var(--theme-text);
+  border: 1px solid var(--theme-border);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 2px var(--theme-primary)20;
+}
+
+/* Panel and dialog styling */
+.panel, .dialog {
+  background-color: var(--theme-surface);
+  color: var(--theme-text);
+  border: 1px solid var(--theme-border);
+  box-shadow: 0 4px 12px var(--theme-shadow);
 }
 
 /* Responsive adjustments for different screen sizes */
@@ -134,4 +272,119 @@ a {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Mobile and Touch Responsiveness */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device styles */
+  .react-flow__controls button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+
+  .react-flow__minimap {
+    width: 35% !important;
+    max-width: 200px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .react-flow__controls {
+    bottom: 80px !important;
+    right: 10px !important;
+  }
+
+  .react-flow__minimap {
+    width: 40% !important;
+    bottom: 80px !important;
+    right: 10px !important;
+    min-width: 120px !important;
+  }
+
+  /* Hide desktop controls on mobile */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Show mobile controls only on mobile */
+  .mobile-only {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .react-flow__controls {
+    bottom: 100px !important;
+    right: 5px !important;
+  }
+
+  .react-flow__minimap {
+    width: 45% !important;
+    bottom: 100px !important;
+    right: 5px !important;
+    min-width: 100px !important;
+  }
+
+  /* Make panels more touch-friendly */
+  .react-flow__panel {
+    padding: 8px !important;
+  }
+
+  /* Larger touch targets for mobile */
+  button, input, select {
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* Desktop-only styles */
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: flex !important;
+  }
+}
+
+/* Touch gesture indicators */
+.touch-gesture-hint {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.touch-gesture-hint.show {
+  opacity: 1;
+}
+
+/* Improved touch scrolling */
+.react-flow__pane {
+  touch-action: pan-x pan-y !important;
+}
+
+/* Better node selection on touch */
+.react-flow__node {
+  touch-action: none;
+}
+
+.react-flow__node.selected {
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.5) !important;
+}
+
+/* Touch-friendly edge selection */
+.react-flow__edge.selected {
+  stroke-width: 4px !important;
 }

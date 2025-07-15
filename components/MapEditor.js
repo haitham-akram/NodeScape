@@ -22,6 +22,15 @@ import ThemeControls from './mapEditor/ThemeControls'
 import NodeLibrary from './mapEditor/NodeLibrary'
 import MapTemplates from './mapEditor/MapTemplates'
 
+// Import Phase 2 components
+import MobileControls from './responsive/MobileControls'
+import { useMobileDetection, useTouchGestures } from './responsive/MobileDetection'
+import AdvancedThemeControls from './theming/AdvancedThemeControls'
+import CommandPalette from './commands/CommandPalette'
+import ShortcutsSettings from './commands/ShortcutsSettings'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { ThemeProvider, useTheme } from '../contexts/AdvancedThemeContext'
+
 // Import operation hooks
 import useNodeOperations from '../lib/hooks/nodeOperations'
 import useEdgeOperations from '../lib/hooks/edgeOperations'
@@ -34,10 +43,10 @@ import { ExecutionProvider, useExecution } from '../contexts/ExecutionContext'
 import { useExecutionManager } from '../lib/hooks/useExecutionManager'
 
 /**
- * Main MapEditor component
+ * Main MapEditor component with Phase 2 enhancements
  * Central component that coordinates all graph editing functionality
  */
-const MapEditor = () => {
+const MapEditorInner = () => {
   // ========================================
   // STATE MANAGEMENT
   // ========================================
@@ -56,14 +65,65 @@ const MapEditor = () => {
   // Editor options
   const [autoConnectEnabled, setAutoConnectEnabled] = useState(false)
   const [selectedEdgeType, setSelectedEdgeType] = useState('default')
-  const [darkMode, setDarkMode] = useState(false)
 
   // Panel visibility states
   const [nodeLibraryVisible, setNodeLibraryVisible] = useState(false)
   const [templatesVisible, setTemplatesVisible] = useState(false)
 
+  // Phase 2: Advanced UI states
+  const [advancedThemeControlsVisible, setAdvancedThemeControlsVisible] = useState(false)
+  const [commandPaletteVisible, setCommandPaletteVisible] = useState(false)
+  const [shortcutsSettingsVisible, setShortcutsSettingsVisible] = useState(false)
+
   // Access React Flow instance
   const { fitView, getViewport } = useReactFlow()
+
+  // Phase 2: Mobile detection and theme
+  const { isMobile, isTablet, touchDevice } = useMobileDetection()
+  const { theme, isDarkMode, setTheme, themes, currentTheme } = useTheme()
+
+  // Apply theme CSS variables to document root
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme && theme.colors) {
+      // Set CSS custom properties for global theming
+      root.style.setProperty('--theme-background', theme.colors.background)
+      root.style.setProperty('--theme-surface', theme.colors.surface)
+      root.style.setProperty('--theme-surface-secondary', theme.colors.surfaceSecondary)
+      root.style.setProperty('--theme-primary', theme.colors.primary)
+      root.style.setProperty('--theme-secondary', theme.colors.secondary)
+      root.style.setProperty('--theme-text', theme.colors.text)
+      root.style.setProperty('--theme-text-secondary', theme.colors.textSecondary)
+      root.style.setProperty('--theme-text-muted', theme.colors.textMuted)
+      root.style.setProperty('--theme-border', theme.colors.border)
+      root.style.setProperty('--theme-border-light', theme.colors.borderLight)
+      root.style.setProperty('--theme-shadow', theme.colors.shadow)
+      root.style.setProperty('--theme-overlay', theme.colors.overlay)
+      root.style.setProperty('--theme-error', theme.colors.error)
+      root.style.setProperty('--theme-warning', theme.colors.warning)
+      root.style.setProperty('--theme-success', theme.colors.success)
+      root.style.setProperty('--theme-info', theme.colors.info)
+
+      // Node colors
+      root.style.setProperty('--theme-node-default-bg', theme.nodes.default.background)
+      root.style.setProperty('--theme-node-default-border', theme.nodes.default.border)
+      root.style.setProperty('--theme-node-default-text', theme.nodes.default.text)
+      root.style.setProperty('--theme-node-input-bg', theme.nodes.input.background)
+      root.style.setProperty('--theme-node-input-border', theme.nodes.input.border)
+      root.style.setProperty('--theme-node-input-text', theme.nodes.input.text)
+      root.style.setProperty('--theme-node-output-bg', theme.nodes.output.background)
+      root.style.setProperty('--theme-node-output-border', theme.nodes.output.border)
+      root.style.setProperty('--theme-node-output-text', theme.nodes.output.text)
+
+      // Edge colors
+      root.style.setProperty('--theme-edge-default', theme.edges.default.stroke)
+      root.style.setProperty('--theme-edge-selected', theme.edges.default.strokeSelected)
+
+      // Set the body background to match theme
+      document.body.style.backgroundColor = theme.colors.background
+      document.body.style.color = theme.colors.text
+    }
+  }, [theme])
 
   // History management
   const history = useHistory(nodes, edges)
@@ -223,10 +283,10 @@ const MapEditor = () => {
     }
   }, [history, setNodes, setEdges])
 
-  // Toggle dark mode
+  // Toggle dark mode (now uses advanced theme system)
   const toggleDarkMode = useCallback(() => {
-    setDarkMode((prev) => !prev)
-  }, [])
+    setTheme(isDarkMode ? 'light' : 'dark')
+  }, [isDarkMode, setTheme])
 
   // Toggle node library panel
   const toggleNodeLibrary = useCallback(() => {
@@ -277,11 +337,148 @@ const MapEditor = () => {
   }, [nodes, executingNodes, executionResults, updateNodeLabel])
 
   // ========================================
+  // PHASE 2: KEYBOARD SHORTCUTS & COMMAND PALETTE
+  // ========================================
+
+  // Define all actions for shortcuts and command palette
+  const keyboardActions = {
+    // Node operations
+    addNode: () => addNode('default'),
+    addInputNode: () => addNode('input'),
+    addOutputNode: () => addNode('output'),
+    deleteSelected: () => {
+      deleteSelectedNodes()
+      deleteSelectedEdges()
+    },
+    selectAll: () => {
+      setSelectedNodes(nodes.map((n) => n.id))
+      setSelectedEdges(edges.map((e) => e.id))
+    },
+    clearSelection: () => {
+      setSelectedNodes([])
+      setSelectedEdges([])
+    },
+
+    // Edit operations
+    undo: handleUndo,
+    redo: handleRedo,
+    copySelected: () => {
+      /* TODO: Implement copy */
+    },
+    pasteNodes: () => {
+      /* TODO: Implement paste */
+    },
+    duplicateSelected: () => {
+      /* TODO: Implement duplicate */
+    },
+
+    // File operations
+    saveMap: saveMap,
+    saveAsMap: () => {
+      /* TODO: Implement save as */
+    },
+    loadMap: () => {
+      /* TODO: Show load dialog */
+    },
+    exportMap: exportAsJson,
+    exportPNG: exportAsPng,
+    importMap: () => {
+      /* TODO: Show import dialog */
+    },
+
+    // View operations
+    fitView: () => fitView(),
+    resetZoom: () => {
+      /* TODO: Implement reset zoom */
+    },
+    zoomIn: () => {
+      /* TODO: Implement zoom in */
+    },
+    zoomOut: () => {
+      /* TODO: Implement zoom out */
+    },
+
+    // Execution
+    executeWorkflow: executionManager.executeWorkflow,
+    stopExecution: executionManager.stopExecution,
+    stepExecution: executionManager.stepExecution,
+    resetExecution: executionManager.resetExecution,
+
+    // Layout
+    autoLayout: autoLayout,
+    alignNodes: alignNodes,
+    distributeNodes: distributeNodes,
+
+    // Connection
+    linkSelected: linkSelectedNodes,
+    linkAll: linkAllNodes,
+    smartLink: smartLinkNodes,
+
+    // Panels
+    toggleNodeLibrary: toggleNodeLibrary,
+    toggleTemplates: toggleTemplates,
+    toggleCommandPalette: () => setCommandPaletteVisible((prev) => !prev),
+    toggleThemes: () => setAdvancedThemeControlsVisible((prev) => !prev),
+    openSettings: () => setShortcutsSettingsVisible(true),
+
+    // Themes
+    cycleTheme: () => {
+      const themeKeys = Object.keys(themes).filter((key) => !themes[key].custom)
+      const currentIndex = themeKeys.indexOf(currentTheme)
+      const nextIndex = (currentIndex + 1) % themeKeys.length
+      setTheme(themeKeys[nextIndex])
+    },
+    lightTheme: () => setTheme('light'),
+    darkTheme: () => setTheme('dark'),
+    blueTheme: () => setTheme('blue'),
+    greenTheme: () => setTheme('green'),
+    purpleTheme: () => setTheme('purple'),
+    sunsetTheme: () => setTheme('sunset'),
+    midnightTheme: () => setTheme('midnight'),
+    cyberpunkTheme: () => setTheme('cyberpunk'),
+  }
+
+  // Setup keyboard shortcuts
+  const { shortcuts, setCustomShortcut, removeCustomShortcut, getFormattedShortcut } =
+    useKeyboardShortcuts(keyboardActions)
+
+  // ========================================
+  // PHASE 2: TOUCH GESTURES
+  // ========================================
+
+  useTouchGestures({
+    onPinch: ({ scale, center }) => {
+      // TODO: Implement pinch-to-zoom
+      console.log('Pinch gesture:', scale, center)
+    },
+    onPan: ({ deltaX, deltaY }) => {
+      // TODO: Implement pan gesture
+      console.log('Pan gesture:', deltaX, deltaY)
+    },
+    onTap: ({ x, y }) => {
+      // Add node on double tap
+      addNode('default', { x: x - 100, y: y - 50 })
+    },
+    onLongPress: ({ x, y }) => {
+      // Show context menu on long press
+      console.log('Long press at:', x, y)
+    },
+  })
+
+  // ========================================
   // RENDER
   // ========================================
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div
+      style={{
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: theme.colors.background,
+        color: theme.colors.text,
+        transition: 'background-color 0.3s ease, color 0.3s ease',
+      }}
+    >
       <ReactFlow
         nodes={enhancedNodes}
         edges={edges}
@@ -300,7 +497,9 @@ const MapEditor = () => {
         zoomOnScroll={true}
         zoomOnPinch={true}
         zoomOnDoubleClick={false}
-        className={`map-editor ${darkMode ? 'dark' : 'light'}`}
+        className={`map-editor ${isDarkMode ? 'dark' : 'light'} ${isMobile ? 'mobile' : ''} ${
+          touchDevice ? 'touch' : ''
+        }`}
       >
         {/* Header with save/load controls */}
         <MapHeader
@@ -318,76 +517,157 @@ const MapEditor = () => {
           createSampleMap={createNewMap}
         />
 
-        {/* Theme Controls */}
-        <ThemeControls
-          darkMode={darkMode}
-          toggleDarkMode={toggleDarkMode}
-          selectedEdgeType={selectedEdgeType}
-          setSelectedEdgeType={setSelectedEdgeType}
-        />
+        {/* Phase 2: Enhanced Theme Controls - Desktop only */}
+        {!isMobile && !isTablet && (
+          <ThemeControls
+            darkMode={isDarkMode}
+            toggleDarkMode={toggleDarkMode}
+            selectedEdgeType={selectedEdgeType}
+            setSelectedEdgeType={setSelectedEdgeType}
+          />
+        )}
+
+        {/* Phase 2: Simple theme toggle for mobile */}
+        {(isMobile || isTablet) && (
+          <Panel
+            position="bottom-left"
+            style={{
+              padding: '8px',
+              background: theme.colors.surface,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '8px',
+              marginBottom: '80px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}
+          >
+            <button
+              onClick={() => {
+                const themeKeys = Object.keys(themes).filter((key) => !themes[key].custom)
+                const currentIndex = themeKeys.indexOf(currentTheme)
+                const nextIndex = (currentIndex + 1) % themeKeys.length
+                setTheme(themeKeys[nextIndex])
+              }}
+              style={{
+                padding: '6px 8px',
+                background: theme.colors.secondary,
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                minWidth: '60px',
+              }}
+              title="Cycle through themes"
+            >
+              🎨 {themes[currentTheme]?.name}
+            </button>
+            <button
+              onClick={() => setAdvancedThemeControlsVisible(true)}
+              style={{
+                padding: '6px 8px',
+                background: theme.colors.primary,
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '11px',
+              }}
+            >
+              ⚙️ Custom
+            </button>
+          </Panel>
+        )}
 
         {/* Background and controls */}
-        <Background color={darkMode ? '#444444' : '#aaaaaa'} gap={16} />
-        <Controls />
+        <Background color={theme.colors.border} gap={16} />
+        <Controls className={isMobile || isTablet ? 'mobile-controls' : ''} />
         <MiniMap
           zoomable
           pannable
-          nodeStrokeColor={darkMode ? '#888888' : '#555555'}
+          nodeStrokeColor={theme.colors.border}
           nodeStrokeWidth={2}
           nodeBorderRadius={4}
           nodeColor={(node) => {
             switch (node.type) {
               case 'input':
-                return darkMode ? '#4caf50' : '#a5d6a7'
+                return theme.nodes.input.background
               case 'output':
-                return darkMode ? '#f44336' : '#ef9a9a'
+                return theme.nodes.output.background
               default:
-                return darkMode ? '#555555' : '#d3d3d3'
+                return theme.nodes.default.background
             }
           }}
-          maskColor={darkMode ? 'rgba(20,20,20,0.6)' : 'rgba(240,240,240,0.6)'}
-          className={`minimap-${darkMode ? 'dark' : 'light'}`}
+          maskColor={theme.colors.overlay}
+          className={`minimap-${isDarkMode ? 'dark' : 'light'} ${isMobile ? 'mobile-minimap' : ''}`}
           inversePan={false}
           position="bottom-right"
         />
 
         {/* Node and Edge Operation Controls */}
-        <MapControls
+        {!isMobile && !isTablet && (
+          <MapControls
+            addNode={addNode}
+            linkSelectedNodes={linkSelectedNodes}
+            linkAllNodes={linkAllNodes}
+            smartLinkNodes={smartLinkNodes}
+            autoConnectEnabled={autoConnectEnabled}
+            setAutoConnectEnabled={setAutoConnectEnabled}
+            selectedEdgeType={selectedEdgeType}
+            setSelectedEdgeType={setSelectedEdgeType}
+            alignNodes={alignNodes}
+            distributeNodes={distributeNodes}
+            autoLayout={autoLayout}
+            darkMode={isDarkMode}
+            selectedNodes={selectedNodes}
+            selectedEdges={selectedEdges}
+            deleteSelectedNodes={deleteSelectedNodes}
+            deleteSelectedEdges={deleteSelectedEdges}
+            canUndo={history.canUndo}
+            canRedo={history.canRedo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onToggleNodeLibrary={toggleNodeLibrary}
+            onToggleTemplates={toggleTemplates}
+            onToggleCommandPalette={() => setCommandPaletteVisible((prev) => !prev)}
+            onToggleThemes={() => setAdvancedThemeControlsVisible((prev) => !prev)}
+            executeWorkflow={executionManager.executeWorkflow}
+            stopExecution={executionManager.stopExecution}
+            resetExecution={executionManager.resetExecution}
+            stepExecution={executionManager.stepExecution}
+            isExecuting={executionManager.isExecuting}
+            executionSpeed={executionManager.executionSpeed}
+            setExecutionSpeed={executionManager.setExecutionSpeed}
+            className="desktop-only"
+          />
+        )}
+
+        {/* Phase 2: Mobile Controls */}
+        <MobileControls
           addNode={addNode}
-          linkSelectedNodes={linkSelectedNodes}
-          linkAllNodes={linkAllNodes}
-          smartLinkNodes={smartLinkNodes}
-          autoConnectEnabled={autoConnectEnabled}
-          setAutoConnectEnabled={setAutoConnectEnabled}
-          selectedEdgeType={selectedEdgeType}
-          setSelectedEdgeType={setSelectedEdgeType}
-          alignNodes={alignNodes}
-          distributeNodes={distributeNodes}
-          autoLayout={autoLayout}
-          darkMode={darkMode}
-          selectedNodes={selectedNodes}
-          selectedEdges={selectedEdges}
           deleteSelectedNodes={deleteSelectedNodes}
           deleteSelectedEdges={deleteSelectedEdges}
-          canUndo={history.canUndo}
-          canRedo={history.canRedo}
+          selectedNodes={selectedNodes}
+          selectedEdges={selectedEdges}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          canUndo={history.canUndo}
+          canRedo={history.canRedo}
+          darkMode={isDarkMode}
           onToggleNodeLibrary={toggleNodeLibrary}
           onToggleTemplates={toggleTemplates}
+          onToggleCommandPalette={() => setCommandPaletteVisible((prev) => !prev)}
           executeWorkflow={executionManager.executeWorkflow}
           stopExecution={executionManager.stopExecution}
-          resetExecution={executionManager.resetExecution}
-          stepExecution={executionManager.stepExecution}
           isExecuting={executionManager.isExecuting}
-          executionSpeed={executionManager.executionSpeed}
-          setExecutionSpeed={executionManager.setExecutionSpeed}
+          onSettings={() => setAdvancedThemeControlsVisible(true)}
         />
 
         {/* Node Library Panel */}
         <NodeLibrary
           addNode={addNode}
-          darkMode={darkMode}
+          darkMode={isDarkMode}
           isVisible={nodeLibraryVisible}
           onToggle={toggleNodeLibrary}
         />
@@ -395,24 +675,55 @@ const MapEditor = () => {
         {/* Map Templates Panel */}
         <MapTemplates
           onLoadTemplate={handleLoadTemplate}
-          darkMode={darkMode}
+          darkMode={isDarkMode}
           isVisible={templatesVisible}
           onToggle={toggleTemplates}
         />
+
+        {/* Phase 2: Advanced Theme Controls */}
+        {advancedThemeControlsVisible && (
+          <AdvancedThemeControls
+            selectedEdgeType={selectedEdgeType}
+            setSelectedEdgeType={setSelectedEdgeType}
+            onClose={() => setAdvancedThemeControlsVisible(false)}
+          />
+        )}
       </ReactFlow>
+
+      {/* Phase 2: Command Palette */}
+      <CommandPalette
+        isOpen={commandPaletteVisible}
+        onClose={() => setCommandPaletteVisible(false)}
+        actions={keyboardActions}
+        shortcuts={shortcuts}
+        getFormattedShortcut={getFormattedShortcut}
+      />
+
+      {/* Phase 2: Shortcuts Settings */}
+      {shortcutsSettingsVisible && (
+        <ShortcutsSettings
+          shortcuts={shortcuts}
+          onSetCustomShortcut={setCustomShortcut}
+          onRemoveCustomShortcut={removeCustomShortcut}
+          getFormattedShortcut={getFormattedShortcut}
+          onClose={() => setShortcutsSettingsVisible(false)}
+        />
+      )}
     </div>
   )
 }
 
-// Wrap the component with ReactFlowProvider and ExecutionProvider
-const MapEditorWithProvider = () => {
+// Main MapEditor component with providers
+const MapEditor = () => {
   return (
-    <ReactFlowProvider>
+    <ThemeProvider>
       <ExecutionProvider>
-        <MapEditor />
+        <ReactFlowProvider>
+          <MapEditorInner />
+        </ReactFlowProvider>
       </ExecutionProvider>
-    </ReactFlowProvider>
+    </ThemeProvider>
   )
 }
 
-export default MapEditorWithProvider
+export default MapEditor
