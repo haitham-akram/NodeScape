@@ -81,19 +81,19 @@ const MapControls = ({
 
   const executionButtonStyle = {
     ...buttonStyle,
-    background: isExecuting ? '#ff4444' : (darkMode ? '#2196F3' : '#e3f2fd'),
-    color: isExecuting ? 'white' : (darkMode ? 'white' : '#1976d2'),
-    border: `1px solid ${isExecuting ? '#ff4444' : (darkMode ? '#2196F3' : '#90caf9')}`,
+    background: isExecuting ? '#ff4444' : darkMode ? '#2196F3' : '#e3f2fd',
+    color: isExecuting ? 'white' : darkMode ? 'white' : '#1976d2',
+    border: `1px solid ${isExecuting ? '#ff4444' : darkMode ? '#2196F3' : '#90caf9'}`,
   }
 
   return (
     <>
       {/* Main Compact Toolbar */}
-      <Panel 
-        position="top-left" 
-        style={{ 
-          padding: '8px', 
-          background: darkMode ? 'rgba(40,40,40,0.95)' : 'rgba(255,255,255,0.95)', 
+      <Panel
+        position="top-left"
+        style={{
+          padding: '8px',
+          background: darkMode ? 'rgba(40,40,40,0.95)' : 'rgba(255,255,255,0.95)',
           borderRadius: '8px',
           backdropFilter: 'blur(10px)',
           border: `1px solid ${darkMode ? '#555' : '#e0e0e0'}`,
@@ -102,32 +102,34 @@ const MapControls = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {/* Quick Add Buttons */}
-          <div style={{ display: 'flex', gap: '4px', paddingRight: '8px', borderRight: `1px solid ${darkMode ? '#555' : '#e0e0e0'}` }}>
-            <button
-              onClick={() => addNode('default')}
-              style={primaryButtonStyle}
-              title="Add Node (N)"
-            >
+          <div
+            style={{
+              display: 'flex',
+              gap: '4px',
+              paddingRight: '8px',
+              borderRight: `1px solid ${darkMode ? '#555' : '#e0e0e0'}`,
+            }}
+          >
+            <button onClick={() => addNode('default')} style={primaryButtonStyle} title="Add Node (N)">
               ➕
             </button>
-            <button
-              onClick={() => addNode('input')}
-              style={secondaryButtonStyle}
-              title="Add Input"
-            >
+            <button onClick={() => addNode('input')} style={secondaryButtonStyle} title="Add Input">
               📥
             </button>
-            <button
-              onClick={() => addNode('output')}
-              style={secondaryButtonStyle}
-              title="Add Output"
-            >
+            <button onClick={() => addNode('output')} style={secondaryButtonStyle} title="Add Output">
               📤
             </button>
           </div>
 
           {/* Undo/Redo */}
-          <div style={{ display: 'flex', gap: '4px', paddingRight: '8px', borderRight: `1px solid ${darkMode ? '#555' : '#e0e0e0'}` }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '4px',
+              paddingRight: '8px',
+              borderRight: `1px solid ${darkMode ? '#555' : '#e0e0e0'}`,
+            }}
+          >
             <button
               onClick={onUndo}
               disabled={!canUndo}
@@ -147,19 +149,22 @@ const MapControls = ({
           </div>
 
           {/* Execution Controls */}
-          <div style={{ display: 'flex', gap: '4px', paddingRight: '8px', borderRight: `1px solid ${darkMode ? '#555' : '#e0e0e0'}` }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '4px',
+              paddingRight: '8px',
+              borderRight: `1px solid ${darkMode ? '#555' : '#e0e0e0'}`,
+            }}
+          >
             <button
               onClick={isExecuting ? stopExecution : executeWorkflow}
               style={executionButtonStyle}
-              title={isExecuting ? "Stop Execution" : "Run Workflow (F5)"}
+              title={isExecuting ? 'Stop Execution' : 'Run Workflow (F5)'}
             >
               {isExecuting ? '⏹️' : '▶️'}
             </button>
-            <button
-              onClick={resetExecution}
-              style={secondaryButtonStyle}
-              title="Reset"
-            >
+            <button onClick={resetExecution} style={secondaryButtonStyle} title="Reset">
               🔄
             </button>
           </div>
@@ -180,11 +185,7 @@ const MapControls = ({
             >
               ⚡
             </button>
-            <button
-              onClick={onToggleNodeLibrary}
-              style={secondaryButtonStyle}
-              title="Node Library"
-            >
+            <button onClick={onToggleNodeLibrary} style={secondaryButtonStyle} title="Node Library">
               📚
             </button>
           </div>
@@ -193,12 +194,12 @@ const MapControls = ({
 
       {/* Advanced Tools Panel */}
       {showAdvanced && (
-        <Panel 
-          position="top-left" 
-          style={{ 
+        <Panel
+          position="top-left"
+          style={{
             marginTop: '60px',
-            padding: '8px', 
-            background: darkMode ? 'rgba(40,40,40,0.95)' : 'rgba(255,255,255,0.95)', 
+            padding: '8px',
+            background: darkMode ? 'rgba(40,40,40,0.95)' : 'rgba(255,255,255,0.95)',
             borderRadius: '8px',
             backdropFilter: 'blur(10px)',
             border: `1px solid ${darkMode ? '#555' : '#e0e0e0'}`,
@@ -206,7 +207,9 @@ const MapControls = ({
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '200px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: darkMode ? '#ccc' : '#666', marginBottom: '4px' }}>
+            <div
+              style={{ fontSize: '11px', fontWeight: 'bold', color: darkMode ? '#ccc' : '#666', marginBottom: '4px' }}
+            >
               CONNECTION TOOLS
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>
@@ -218,23 +221,23 @@ const MapControls = ({
               >
                 🔗 Link Selected
               </button>
-              <button
-                onClick={linkAllNodes}
-                style={secondaryButtonStyle}
-                title="Link All Nodes"
-              >
+              <button onClick={linkAllNodes} style={secondaryButtonStyle} title="Link All Nodes">
                 🔄 Link All
               </button>
             </div>
-            <button
-              onClick={smartLinkNodes}
-              style={primaryButtonStyle}
-              title="Smart Link Nodes"
-            >
+            <button onClick={smartLinkNodes} style={primaryButtonStyle} title="Smart Link Nodes">
               🧠 Smart Link
             </button>
-            
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: darkMode ? '#ccc' : '#666', marginTop: '8px', marginBottom: '4px' }}>
+
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: darkMode ? '#ccc' : '#666',
+                marginTop: '8px',
+                marginBottom: '4px',
+              }}
+            >
               LAYOUT TOOLS
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>
@@ -254,25 +257,23 @@ const MapControls = ({
               >
                 📏 Distribute
               </button>
-              <button
-                onClick={autoLayout}
-                style={primaryButtonStyle}
-                title="Auto Layout"
-              >
+              <button onClick={autoLayout} style={primaryButtonStyle} title="Auto Layout">
                 🎯 Auto Layout
               </button>
             </div>
 
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              fontSize: '12px',
-              marginTop: '8px',
-              color: darkMode ? '#ccc' : '#666'
-            }}>
-              <input 
-                type="checkbox" 
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                marginTop: '8px',
+                color: darkMode ? '#ccc' : '#666',
+              }}
+            >
+              <input
+                type="checkbox"
                 checked={autoConnectEnabled}
                 onChange={(e) => setAutoConnectEnabled(e.target.checked)}
               />
@@ -284,13 +285,13 @@ const MapControls = ({
 
       {/* Execution Settings Panel */}
       {showExecution && (
-        <Panel 
-          position="top-left" 
-          style={{ 
+        <Panel
+          position="top-left"
+          style={{
             marginTop: '60px',
             marginLeft: showAdvanced ? '220px' : '0px',
-            padding: '8px', 
-            background: darkMode ? 'rgba(40,40,40,0.95)' : 'rgba(255,255,255,0.95)', 
+            padding: '8px',
+            background: darkMode ? 'rgba(40,40,40,0.95)' : 'rgba(255,255,255,0.95)',
             borderRadius: '8px',
             backdropFilter: 'blur(10px)',
             border: `1px solid ${darkMode ? '#555' : '#e0e0e0'}`,
@@ -298,28 +299,30 @@ const MapControls = ({
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: darkMode ? '#ccc' : '#666', marginBottom: '4px' }}>
+            <div
+              style={{ fontSize: '11px', fontWeight: 'bold', color: darkMode ? '#ccc' : '#666', marginBottom: '4px' }}
+            >
               EXECUTION CONTROLS
             </div>
-            
+
             <div style={{ display: 'flex', gap: '4px' }}>
-              <button
-                onClick={stepExecution}
-                style={secondaryButtonStyle}
-                title="Step Through"
-              >
+              <button onClick={stepExecution} style={secondaryButtonStyle} title="Step Through">
                 ⏭️ Step
               </button>
-              <button
-                onClick={onToggleTemplates}
-                style={secondaryButtonStyle}
-                title="Templates"
-              >
+              <button onClick={onToggleTemplates} style={secondaryButtonStyle} title="Templates">
                 🎨 Templates
               </button>
             </div>
 
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: darkMode ? '#ccc' : '#666', marginTop: '4px', marginBottom: '4px' }}>
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: darkMode ? '#ccc' : '#666',
+                marginTop: '4px',
+                marginBottom: '4px',
+              }}
+            >
               SPEED CONTROL
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -333,20 +336,28 @@ const MapControls = ({
                 step="100"
                 value={executionSpeed}
                 onChange={(e) => setExecutionSpeed(parseInt(e.target.value))}
-                style={{ 
+                style={{
                   flex: 1,
                   height: '4px',
                   background: darkMode ? '#555' : '#ddd',
                   borderRadius: '2px',
                   outline: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
                 }}
               />
             </div>
 
             {selectedNodes.length > 0 && (
               <>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: darkMode ? '#ccc' : '#666', marginTop: '8px', marginBottom: '4px' }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    color: darkMode ? '#ccc' : '#666',
+                    marginTop: '8px',
+                    marginBottom: '4px',
+                  }}
+                >
                   SELECTED ({selectedNodes.length})
                 </div>
                 <button

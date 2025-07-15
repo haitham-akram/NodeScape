@@ -1,35 +1,39 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 
 /**
  * History Management Hook
  * Provides undo/redo functionality for nodes and edges
  */
-const useHistory = (initialNodes = [], initialEdges = []) => {
+const useHistory = (nodes = [], edges = []) => {
   const [historyIndex, setHistoryIndex] = useState(0)
   const [history, setHistory] = useState([
     {
-      nodes: initialNodes,
-      edges: initialEdges,
+      nodes: [],
+      edges: [],
       timestamp: Date.now(),
     },
   ])
 
   const maxHistorySize = 50
   const isUndoRedoOperation = useRef(false)
+  const lastNodesRef = useRef([])
+  const lastEdgesRef = useRef([])
 
-  /**
-   * Add a new state to history
-   * @param {Array} nodes - Current nodes state
-   * @param {Array} edges - Current edges state
-   */
-  const addToHistory = useCallback(
-    (nodes, edges) => {
-      // Don't add to history if this is an undo/redo operation
-      if (isUndoRedoOperation.current) {
-        isUndoRedoOperation.current = false
-        return
-      }
+  // Track changes automatically
+  useEffect(() => {
+    // Skip if this is an undo/redo operation
+    if (isUndoRedoOperation.current) {
+      isUndoRedoOperation.current = false
+      lastNodesRef.current = nodes
+      lastEdgesRef.current = edges
+      return
+    }
 
+    // Check if nodes or edges actually changed
+    const nodesChanged = JSON.stringify(nodes) !== JSON.stringify(lastNodesRef.current)
+    const edgesChanged = JSON.stringify(edges) !== JSON.stringify(lastEdgesRef.current)
+
+    if (nodesChanged || edgesChanged) {
       setHistory((prevHistory) => {
         // Remove any history after current index (when we make changes after undoing)
         const newHistory = prevHistory.slice(0, historyIndex + 1)
@@ -44,16 +48,18 @@ const useHistory = (initialNodes = [], initialEdges = []) => {
         // Limit history size
         if (newHistory.length > maxHistorySize) {
           newHistory.shift()
-          setHistoryIndex((prevIndex) => prevIndex - 1)
+          setHistoryIndex((prevIndex) => Math.max(0, prevIndex - 1))
           return newHistory
         }
 
         setHistoryIndex(newHistory.length - 1)
         return newHistory
       })
-    },
-    [historyIndex]
-  )
+
+      lastNodesRef.current = nodes
+      lastEdgesRef.current = edges
+    }
+  }, [nodes, edges, historyIndex])
 
   /**
    * Undo the last action
@@ -114,7 +120,6 @@ const useHistory = (initialNodes = [], initialEdges = []) => {
   return {
     canUndo: historyIndex > 0,
     canRedo: historyIndex < history.length - 1,
-    addToHistory,
     undo,
     redo,
     clearHistory,

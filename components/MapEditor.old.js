@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import {
   ReactFlow,
   Controls,
@@ -9,7 +9,6 @@ import {
   ReactFlowProvider,
   MiniMap,
   Panel,
-  addEdge,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
@@ -23,15 +22,15 @@ import NodeLibrary from './mapEditor/NodeLibrary'
 import MapTemplates from './mapEditor/MapTemplates'
 
 // Import operation hooks
-import useNodeOperations from '../lib/hooks/nodeOperations'
-import useEdgeOperations from '../lib/hooks/edgeOperations'
-import useMapOperations from '../lib/hooks/mapOperations'
-import useGraphUtils from '../lib/hooks/graphUtils'
-import useHistory from '../lib/hooks/useHistory'
+import useNodeOperations from './mapEditor/nodeOperations'
+import useEdgeOperations from './mapEditor/edgeOperations'
+import useMapOperations from './mapEditor/mapOperations'
+import useGraphUtils from './mapEditor/graphUtils'
+import useHistory from './mapEditor/useHistory'
 
 // Import execution context and manager
-import { ExecutionProvider, useExecution } from '../contexts/ExecutionContext'
-import { useExecutionManager } from '../lib/hooks/useExecutionManager'
+import { ExecutionProvider } from '../contexts/ExecutionContext'
+import { useExecutionManager } from './mapEditor/useExecutionManager'
 
 /**
  * Main MapEditor component
@@ -68,10 +67,6 @@ const MapEditor = () => {
   // History management
   const history = useHistory(nodes, edges)
 
-  // Execution management (from context)
-  const { executingNodes, executionResults } = useExecution()
-  const executionManager = useExecutionManager(nodes, edges)
-
   // ========================================
   // CUSTOM HOOKS FOR OPERATIONS
   // ========================================
@@ -104,25 +99,27 @@ const MapEditor = () => {
     setNodeCounter,
     setSelectedNodes,
     setSelectedEdges,
-    markMapAsModified: (value) => setMapModifiedAfterLoad(value),
   })
 
-  // Extract map operations functions
+  // Extract map operations
   const {
-    saveMap,
-    loadMapById,
-    exportAsJson,
-    importFromJson,
-    exportAsPng,
-    createNewMap,
-    canSave,
-    loadMapId,
-    setLoadMapId,
-    isLoading,
+    currentMapId,
+    setCurrentMapId,
+    currentMapName,
+    setCurrentMapName,
     mapModifiedAfterLoad,
     setMapModifiedAfterLoad,
+    isLoading,
+    loadMapId,
+    setLoadMapId,
     availableMaps,
     fetchAvailableMaps,
+    saveMap,
+    loadMapById,
+    exportAsPng,
+    exportAsJson,
+    importFromJson,
+    createNewMap,
   } = mapOperations
 
   // Edge operations
@@ -130,29 +127,138 @@ const MapEditor = () => {
     nodes,
     edges,
     setEdges,
-    selectedNodes,
     selectedEdges,
     setSelectedEdges,
-    autoConnectEnabled,
     selectedEdgeType,
     markMapAsModified: (value) => setMapModifiedAfterLoad(value),
+    autoConnectEnabled,
   })
 
-  // Extract edge operations functions
-  const { linkSelectedNodes, linkAllNodes, smartLinkNodes, deleteSelectedEdges, onConnect } = edgeOperations
+  // Extract edge operations
+  const { addEdge, onConnect, deleteSelectedEdges, linkSelectedNodes, linkAllNodes, smartLinkNodes, handleNodeAdd } =
+    edgeOperations
+
+  // Create a wrapped version of addNode that also handles auto-connection
+  const addNode = useCallback(
+    (type = 'default', position = null, label = null) => {
+      const nodeId = addNodeOriginal(type, position, label)
+
+      // When autoConnect is enabled, connect the new node to the previous node
+      if (nodeId) {
+        handleNodeAdd(nodeId)
+      }
+
+      return nodeId
+    },
+    [addNodeOriginal, handleNodeAdd]
+  )
 
   // Graph utilities
   const graphUtils = useGraphUtils({
     nodes,
     setNodes,
-    selectedNodes,
-    getViewport,
-    fitView,
+    setEdges,
+    setNodeCounter,
+    setSelectedNodes,
+    setSelectedEdges,
     markMapAsModified: (value) => setMapModifiedAfterLoad(value),
   })
 
   // Extract graph utilities
   const { alignNodes, distributeNodes, autoLayout } = graphUtils
+
+  // ========================================
+  // EXECUTION ENGINE FUNCTIONS
+  // ========================================
+
+  // Setup execution engine listeners
+  React.useEffect(() => {
+    const handleNodeExecuted = (event) => {
+      setExecutingNodes((prev) => {
+        const next = new Set(prev)
+        next.add(event.nodeId)
+        return next
+      })
+      setExecutionResults((prev) => {
+        const next = new Map(prev)
+        next.set(event.nodeId, event.data)
+        return next
+      })
+    }
+
+    const handleExecutionComplete = (event) => {
+      setIsExecuting(false)
+      setExecutingNodes(new Set())
+      console.log('Execution completed:', event)
+    }
+
+    const handleExecutionError = (event) => {
+      setIsExecuting(false)
+      setExecutingNodes(new Set())
+      console.error('Execution error:', event.error)
+    }
+
+    executionEngine.addListener('nodeExecuted', handleNodeExecuted)
+    executionEngine.addListener('executionComplete', handleExecutionComplete)
+    executionEngine.addListener('executionError', handleExecutionError)
+
+    return () => {
+      executionEngine.removeListener('nodeExecuted', handleNodeExecuted)
+      executionEngine.removeListener('executionComplete', handleExecutionComplete)
+      executionEngine.removeListener('executionError', handleExecutionError)
+    }
+  }, [executionEngine])
+
+  // Execute workflow
+  const executeWorkflow = useCallback(async () => {
+    if (isExecuting) return
+
+    setIsExecuting(true)
+    setExecutionResults(new Map())
+    setExecutingNodes(new Set())
+
+    // Set execution speed
+    executionEngine.executionSpeed = executionSpeed
+
+    try {
+      // Get input data from input nodes
+      const inputData = {}
+      nodes.forEach((node) => {
+        if (node.type === 'input' && node.data?.value !== undefined) {
+          inputData[node.id] = node.data.value
+        }
+      })
+
+      await executionEngine.executeWorkflow(nodes, edges, inputData)
+    } catch (error) {
+      console.error('Execution failed:', error)
+      setIsExecuting(false)
+      setExecutingNodes(new Set())
+    }
+  }, [nodes, edges, executionEngine, isExecuting, executionSpeed])
+
+  // Stop execution
+  const stopExecution = useCallback(() => {
+    executionEngine.stop()
+    setIsExecuting(false)
+    setExecutingNodes(new Set())
+  }, [executionEngine])
+
+  // Reset execution
+  const resetExecution = useCallback(() => {
+    executionEngine.reset()
+    setIsExecuting(false)
+    setExecutingNodes(new Set())
+    setExecutionResults(new Map())
+  }, [executionEngine])
+
+  // Step through execution
+  const stepExecution = useCallback(async () => {
+    if (isExecuting) return
+
+    // TODO: Implement step-by-step execution
+    console.log('Step execution not yet implemented')
+  }, [isExecuting])
 
   // ========================================
   // EVENT HANDLERS
@@ -192,98 +298,137 @@ const MapEditor = () => {
       // Extract edge IDs from selected edges
       const edgeIds = selectedEdges.map((edge) => edge.id)
       setSelectedEdges(edgeIds)
+
+      console.log('Selection changed:', { nodes: nodeIds, edges: edgeIds })
     },
     [setSelectedNodes, setSelectedEdges]
   )
 
-  // Create enhanced addNode function
-  const addNode = useCallback(
-    (type = 'default', position) => {
-      const newNode = addNodeOriginal(type, position)
-      return newNode
+  // Handle key commands (delete, undo, redo, etc.)
+  const onKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        deleteSelectedNodes()
+        deleteSelectedEdges()
+      } else if (event.ctrlKey || event.metaKey) {
+        if (event.key === 'z' && !event.shiftKey) {
+          event.preventDefault()
+          // handleUndo() will be called later
+        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
+          event.preventDefault()
+          // handleRedo() will be called later
+        }
+      }
     },
-    [addNodeOriginal]
+    [deleteSelectedNodes, deleteSelectedEdges]
   )
 
-  // Handle undo operations
+  // Undo functionality
   const handleUndo = useCallback(() => {
-    const result = history.undo()
-    if (result && result.nodes !== undefined && result.edges !== undefined) {
-      setNodes(result.nodes)
-      setEdges(result.edges)
+    const previousState = history.undo()
+    if (previousState) {
+      setNodes(previousState.nodes)
+      setEdges(previousState.edges)
     }
   }, [history, setNodes, setEdges])
 
-  // Handle redo operations
+  // Redo functionality
   const handleRedo = useCallback(() => {
-    const { nodes: nextNodes, edges: nextEdges } = history.redo()
-    if (nextNodes && nextEdges) {
-      setNodes(nextNodes)
-      setEdges(nextEdges)
+    const nextState = history.redo()
+    if (nextState) {
+      setNodes(nextState.nodes)
+      setEdges(nextState.edges)
     }
   }, [history, setNodes, setEdges])
 
-  // Toggle dark mode
-  const toggleDarkMode = useCallback(() => {
-    setDarkMode((prev) => !prev)
-  }, [])
+  // Global key handler for undo/redo
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (event) => {
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === 'z' && !event.shiftKey) {
+          event.preventDefault()
+          handleUndo()
+        } else if (event.key === 'y' || (event.key === 'z' && event.shiftKey)) {
+          event.preventDefault()
+          handleRedo()
+        }
+      }
+    }
 
-  // Toggle node library panel
+    document.addEventListener('keydown', handleGlobalKeyDown)
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [handleUndo, handleRedo])
+
+  // Add to history when nodes or edges change
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      history.addToHistory(nodes, edges)
+    }, 100) // Much faster response for undo/redo
+
+    return () => clearTimeout(timer)
+  }, [nodes, edges, history])
+
+  // Template loading handler
+  const handleLoadTemplate = useCallback(
+    (template) => {
+      setNodes(template.nodes)
+      setEdges(template.edges)
+      history.clearHistory(template.nodes, template.edges)
+
+      // Fit view after loading template
+      setTimeout(() => fitView(), 100)
+    },
+    [setNodes, setEdges, history, fitView]
+  )
+
+  // Panel toggle handlers
   const toggleNodeLibrary = useCallback(() => {
     setNodeLibraryVisible((prev) => !prev)
   }, [])
 
-  // Toggle templates panel
   const toggleTemplates = useCallback(() => {
     setTemplatesVisible((prev) => !prev)
   }, [])
 
-  // Load template handler
-  const handleLoadTemplate = useCallback(
-    (templateData) => {
-      const { nodes: templateNodes, edges: templateEdges } = templateData
-      setNodes(templateNodes)
-      setEdges(templateEdges)
-      setMapModifiedAfterLoad(true)
-
-      // Update node counter to avoid conflicts
-      const maxId = Math.max(...templateNodes.map((node) => parseInt(node.id.replace(/\D/g, '')) || 0), 0)
-      setNodeCounter(maxId + 1)
-
-      // Close template panel
-      setTemplatesVisible(false)
-
-      // Fit view to show all nodes
-      setTimeout(() => fitView(), 100)
-    },
-    [setNodes, setEdges, setNodeCounter, fitView, setMapModifiedAfterLoad]
-  )
+  // Toggle dark mode
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode((prevDarkMode) => !prevDarkMode)
+  }, [])
 
   // ========================================
-  // ENHANCED NODE RENDERING WITH EXECUTION STATE
+  // PREPARE NODES WITH EXECUTION STATE (WITHOUT MODIFYING MAIN STATE)
   // ========================================
 
-  // Enhanced nodes with execution state
-  const enhancedNodes = React.useMemo(() => {
+  // Create nodes with execution state for rendering (don't modify main nodes state)
+  const nodesWithExecutionState = React.useMemo(() => {
     return nodes.map((node) => ({
       ...node,
       data: {
         ...node.data,
         isExecuting: executingNodes.has(node.id),
+        hasExecuted: executionResults.has(node.id),
         executionResult: executionResults.get(node.id),
-        onLabelChange: (newLabel) => updateNodeLabel(node.id, newLabel),
       },
     }))
-  }, [nodes, executingNodes, executionResults, updateNodeLabel])
+  }, [nodes, executingNodes, executionResults])
 
   // ========================================
-  // RENDER
+  // RENDER COMPONENT
   // ========================================
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div
+      style={{
+        width: '100%',
+        height: '100vh',
+        backgroundColor: darkMode ? '#1a1a1a' : '#f5f5f5',
+        color: darkMode ? '#e0e0e0' : '#333',
+      }}
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+    >
       <ReactFlow
-        nodes={enhancedNodes}
+        nodes={nodesWithExecutionState}
         edges={edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
@@ -291,21 +436,16 @@ const MapEditor = () => {
         onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        deleteKeyCode={null}
-        multiSelectionKeyCode={null}
-        selectionKeyCode={null}
-        panOnDrag={true}
-        selectionOnDrag={false}
-        panOnScroll={false}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        zoomOnDoubleClick={false}
-        className={`map-editor ${darkMode ? 'dark' : 'light'}`}
+        proOptions={{ hideAttribution: true }}
+        deleteKeyCode={[]} // Disable default deletion to use our custom handler
+        fitView
       >
-        {/* Header with save/load controls */}
+        {/* Map Header with title and save/load controls */}
         <MapHeader
+          currentMapName={currentMapName}
+          setCurrentMapName={setCurrentMapName}
+          mapModifiedAfterLoad={mapModifiedAfterLoad}
           saveMap={saveMap}
-          canSave={canSave}
           loadMapId={loadMapId}
           setLoadMapId={setLoadMapId}
           availableMaps={availableMaps}
@@ -375,13 +515,13 @@ const MapEditor = () => {
           onRedo={handleRedo}
           onToggleNodeLibrary={toggleNodeLibrary}
           onToggleTemplates={toggleTemplates}
-          executeWorkflow={executionManager.executeWorkflow}
-          stopExecution={executionManager.stopExecution}
-          resetExecution={executionManager.resetExecution}
-          stepExecution={executionManager.stepExecution}
-          isExecuting={executionManager.isExecuting}
-          executionSpeed={executionManager.executionSpeed}
-          setExecutionSpeed={executionManager.setExecutionSpeed}
+          executeWorkflow={executeWorkflow}
+          stopExecution={stopExecution}
+          resetExecution={resetExecution}
+          stepExecution={stepExecution}
+          isExecuting={isExecuting}
+          executionSpeed={executionSpeed}
+          setExecutionSpeed={setExecutionSpeed}
         />
 
         {/* Node Library Panel */}
@@ -404,13 +544,11 @@ const MapEditor = () => {
   )
 }
 
-// Wrap the component with ReactFlowProvider and ExecutionProvider
+// Wrap the component with ReactFlowProvider
 const MapEditorWithProvider = () => {
   return (
     <ReactFlowProvider>
-      <ExecutionProvider>
-        <MapEditor />
-      </ExecutionProvider>
+      <MapEditor />
     </ReactFlowProvider>
   )
 }

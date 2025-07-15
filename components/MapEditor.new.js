@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import {
   ReactFlow,
   Controls,
@@ -9,7 +9,6 @@ import {
   ReactFlowProvider,
   MiniMap,
   Panel,
-  addEdge,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 
@@ -23,15 +22,15 @@ import NodeLibrary from './mapEditor/NodeLibrary'
 import MapTemplates from './mapEditor/MapTemplates'
 
 // Import operation hooks
-import useNodeOperations from '../lib/hooks/nodeOperations'
-import useEdgeOperations from '../lib/hooks/edgeOperations'
-import useMapOperations from '../lib/hooks/mapOperations'
-import useGraphUtils from '../lib/hooks/graphUtils'
-import useHistory from '../lib/hooks/useHistory'
+import useNodeOperations from './mapEditor/nodeOperations'
+import useEdgeOperations from './mapEditor/edgeOperations'
+import useMapOperations from './mapEditor/mapOperations'
+import useGraphUtils from './mapEditor/graphUtils'
+import useHistory from './mapEditor/useHistory'
 
 // Import execution context and manager
 import { ExecutionProvider, useExecution } from '../contexts/ExecutionContext'
-import { useExecutionManager } from '../lib/hooks/useExecutionManager'
+import { useExecutionManager } from './mapEditor/useExecutionManager'
 
 /**
  * Main MapEditor component
@@ -139,7 +138,7 @@ const MapEditor = () => {
   })
 
   // Extract edge operations functions
-  const { linkSelectedNodes, linkAllNodes, smartLinkNodes, deleteSelectedEdges, onConnect } = edgeOperations
+  const { linkSelectedNodes, linkAllNodes, smartLinkNodes, deleteSelectedEdges } = edgeOperations
 
   // Graph utilities
   const graphUtils = useGraphUtils({
@@ -207,10 +206,10 @@ const MapEditor = () => {
 
   // Handle undo operations
   const handleUndo = useCallback(() => {
-    const result = history.undo()
-    if (result && result.nodes !== undefined && result.edges !== undefined) {
-      setNodes(result.nodes)
-      setEdges(result.edges)
+    const { nodes: prevNodes, edges: prevEdges } = history.undo()
+    if (prevNodes && prevEdges) {
+      setNodes(prevNodes)
+      setEdges(prevEdges)
     }
   }, [history, setNodes, setEdges])
 
@@ -287,7 +286,6 @@ const MapEditor = () => {
         edges={edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
-        onConnect={onConnect}
         onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
